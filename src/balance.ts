@@ -1,6 +1,6 @@
 import type { TeamAssignments, TeamColor } from "./types";
 
-const TEAMS: TeamColor[] = ["blue", "yellow", "orange"];
+const TEAMS: TeamColor[] = ["green", "yellow", "orange"];
 
 export interface BalanceInput {
   id: string;
@@ -40,11 +40,11 @@ function shuffle<T>(arr: T[], random: () => number): T[] {
 
 /** Greedy assign: each player goes to the team with the lowest current sum. */
 function greedySplit(ordered: BalanceInput[], teamSize: number): TeamAssignments {
-  const split: TeamAssignments = { blue: [], yellow: [], orange: [] };
+  const split: TeamAssignments = { green: [], yellow: [], orange: [] };
   const strengthById = new Map(ordered.map((p) => [p.id, p.strength]));
 
   for (const p of ordered) {
-    let bestTeam: TeamColor = "blue";
+    let bestTeam: TeamColor = "green";
     let bestSum = Infinity;
     for (const t of TEAMS) {
       if (split[t].length >= teamSize) continue;
@@ -103,7 +103,7 @@ export function balanceTeams(
   return {
     assignments: best,
     averages: {
-      blue: teamAverage(best.blue, strengthById),
+      green: teamAverage(best.green, strengthById),
       yellow: teamAverage(best.yellow, strengthById),
       orange: teamAverage(best.orange, strengthById),
     },

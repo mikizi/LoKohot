@@ -1,6 +1,6 @@
 # LoKohot — Football team balancer
 
-אפליקציה לניהול רשימת שחקנים, בדיקת נוכחות לערב משחק, ואיזון לשלוש קבוצות (כחול / צהוב / כתום) לפי דירוג כוח 1–6.
+אפליקציה לניהול רשימת שחקנים, בדיקת נוכחות לערב משחק, ואיזון לשלוש קבוצות (ירוק / צהוב / כתום) לפי דירוג כוח 1–6.
 
 בנוי כמו [eurovision-hit-or-script](https://github.com/mikizi/eurovision-hit-or-script): **Vite + TypeScript** ב-GitHub Pages, נתונים ב-**Supabase** (PostgREST מהדפדפן, בלי חבילת `@supabase/js`).
 
@@ -13,20 +13,42 @@
 - גרירה בין עמודות הקבוצות
 - שמירה ב-Supabase
 
-## הגדרת Supabase (פעם אחת)
+## הגדרת Supabase
 
-אפשר להשתמש באותו פרויקט Supabase כמו `eurovision-hit-or-script`, או ליצור חדש.
+אפשר להשתמש באותו פרויקט Supabase כמו `eurovision-hit-or-script`.
 
-1. ב-SQL Editor הרץ את [`supabase/schema.sql`](supabase/schema.sql)  
-   **או** מהטרמינל (צריך סיסמת DB מ-Settings → Database):
+### איפוס מלא (מומלץ — מוחק הכל ובונה מחדש)
 
-```sh
-SUPABASE_DB_PASSWORD='your-db-password' npm run db:apply
-```
+Supabase → **SQL Editor** → הדבק והרץ את כל הקובץ:
 
-2. העתק `.env.example` → `.env` עם:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY` (מ-Project Settings → API)
+**[`supabase/reset_all.sql`](supabase/reset_all.sql)**
+
+זה מוחק את כל הטבלאות, יוצר אותן מחדש, 42 שחקנים בלי כפילויות, וסיסמת ניהול `hagigat1234`.
+
+בסוף תראה שורת סיכום: `players | 42`.
+
+### הגדרה ראשונה (בלי מחיקה)
+
+רק אם המסד ריק: [`supabase/schema.sql`](supabase/schema.sql) + [`migration_game.sql`](supabase/migration_game.sql) + [`migration_admin.sql`](supabase/migration_admin.sql).
+
+העתק `.env.example` → `.env`:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+## דפים
+
+| דף | כתובת | תפקיד |
+|----|--------|--------|
+| ציבורי | `index.html` | קבוצות, תוצאות משחקים, טבלה, כובשים |
+| ניהול | `admin.html` | check-in, איזון, פרסום לציבור |
+
+קוד ניהול (`admin.html`): `hagigat1234` — לשנות: עדכן `admin_pin` בטבלת `app_settings`.
+
+### פרסום ערב
+
+1. ב-**ניהול**: check-in → איזון → **שמור קבוצות** → **פרסם לעמוד הציבורי**
+2. ב-**עמוד ציבורי**: עדכון תוצאות (3 משחקים), הוספת כובשים, צפייה בטבלה
 
 ## פיתוח מקומי
 

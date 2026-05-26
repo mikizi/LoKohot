@@ -1,23 +1,19 @@
+import { getAppState, setAssignments } from "../appState";
+import { sortPlayerIdsByStrength } from "../sortPlayers";
 import { balanceTeams } from "../balance";
 import type { CheckedInPlayer, Session, TeamAssignments, TeamColor } from "../types";
 import * as db from "../lokohotDb";
-import { $, debounce, showError, clearError } from "./dom";
+import { $, showError, clearError } from "./dom";
 import type { CheckInState } from "./checkIn";
 
-const TEAMS: TeamColor[] = ["blue", "yellow", "orange"];
+const TEAMS: TeamColor[] = ["green", "yellow", "orange"];
 
 let currentSession: Session | null = null;
-let assignments: TeamAssignments = { blue: [], yellow: [], orange: [] };
+let assignments: TeamAssignments = { green: [], yellow: [], orange: [] };
 let playerById = new Map<string, CheckedInPlayer>();
+let teamsDirty = false;
 
 let draggedId: string | null = null;
-
-const saveDebounced = debounce(() => {
-  if (!currentSession) return;
-  void db.saveTeamAssignments(currentSession.id, assignments).catch((err) => {
-    showError(err instanceof Error ? err.message : "לא נשמר");
-  });
-}, 400);
 
 export function initTeams(): void {
   for (const team of TEAMS) {
@@ -46,6 +42,9 @@ export function initTeams(): void {
 
   $("btnBalance").addEventListener("click", () => void runBalance());
   $("btnRebalance").addEventListener("click", () => void runBalance());
+
+  const saveBtn = document.getElementById("btnSaveTeams");
+  saveBtn?.addEventListener("click", () => void saveTeamsNow());
 }
 
 export function syncFromCheckIn(state: CheckInState): void {
@@ -55,24 +54,48 @@ export function syncFromCheckIn(state: CheckInState): void {
   const checkedIds = new Set(state.checkedIn.map((p) => p.id));
   const prune = (ids: string[]) => ids.filter((id) => checkedIds.has(id));
 
-  assignments = {
-    blue: prune(assignments.blue),
-    yellow: prune(assignments.yellow),
-    orange: prune(assignments.orange),
-  };
+  const fromApp = getAppState()?.assignments;
+  if (fromApp) {
+    assignments = {
+      green: prune(fromApp.green),
+      yellow: prune(fromApp.yellow),
+      orange: prune(fromApp.orange),
+    };
+  } else {
+    assignments = {
+      green: prune(assignments.green),
+      yellow: prune(assignments.yellow),
+      orange: prune(assignments.orange),
+    };
+  }
 
-  void db.loadTeamAssignments(state.session.id).then((fromDb) => {
-    const hasAny =
-      fromDb.blue.length + fromDb.yellow.length + fromDb.orange.length > 0;
-    if (hasAny) {
-      assignments = {
-        blue: prune(fromDb.blue),
-        yellow: prune(fromDb.yellow),
-        orange: prune(fromDb.orange),
-      };
-    }
-    renderTeams();
-  });
+  teamsDirty = false;
+  renderTeams();
+  updateSaveTeamsHint();
+}
+
+async function saveTeamsNow(): Promise<void> {
+  if (!currentSession || !teamsDirty) return;
+  clearError();
+  try {
+    await db.saveTeamAssignments(currentSession.id, assignments);
+    setAssignments(assignments);
+    teamsDirty = false;
+    updateSaveTeamsHint();
+  } catch (err) {
+    showError(err instanceof Error ? err.message : "לא נשמר");
+  }
+}
+
+function updateSaveTeamsHint(): void {
+  const el = document.getElementById("teamsSaveHint");
+  if (!el) return;
+  if (teamsDirty) {
+    el.classList.remove("hidden");
+    el.textContent = "יש שינויים שלא נשמרו — לחץ שמור קבוצות";
+  } else {
+    el.classList.add("hidden");
+  }
 }
 
 export async function runBalance(): Promise<void> {
@@ -92,9 +115,13 @@ export async function runBalance(): Promise<void> {
       players.map((p) => ({ id: p.id, strength: p.strength as number }))
     );
     assignments = result.assignments;
+    teamsDirty = true;
     renderTeams();
     if (currentSession) {
       await db.saveTeamAssignments(currentSession.id, assignments);
+      setAssignments(assignments);
+      teamsDirty = false;
+      updateSaveTeamsHint();
     }
   } catch (err) {
     showError(err instanceof Error ? err.message : "שגיאת איזון");
@@ -106,8 +133,9 @@ function movePlayerToTeam(playerId: string, team: TeamColor): void {
     assignments[t] = assignments[t].filter((id) => id !== playerId);
   }
   assignments[team].push(playerId);
+  teamsDirty = true;
   renderTeams();
-  saveDebounced();
+  updateSaveTeamsHint();
 }
 
 function renderTeams(): void {
@@ -117,7 +145,7 @@ function renderTeams(): void {
     if (!list || !col) continue;
 
     list.replaceChildren();
-    const ids = assignments[team];
+    const ids = sortPlayerIdsByStrength(assignments[team], playerById);
     const strengths = ids
       .map((id) => playerById.get(id)?.strength)
       .filter((s): s is number => s !== null && s !== undefined);

@@ -1,3 +1,5 @@
+import { filterRosterLocal, getAppState, loadAppState } from "../appState";
+import { sortPlayersByStrength } from "../sortPlayers";
 import type { CheckedInPlayer, Player, Session } from "../types";
 import * as db from "../lokohotDb";
 import { $, clearError, showError } from "./dom";
@@ -21,12 +23,19 @@ export function initCheckIn(onChanged: CheckInChangeHandler): void {
   const strengthDialog = $("strengthDialog") as HTMLDialogElement;
   const strengthForm = $("strengthForm") as HTMLFormElement;
 
-  let searchTimer: ReturnType<typeof setTimeout> | undefined;
+  const runLocalSearch = () => {
+    showLocalSearchResults(searchInput.value, results);
+  };
 
-  searchInput.addEventListener("input", () => {
-    if (searchTimer) clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => void runSearch(searchInput.value, results), 200);
+  searchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      runLocalSearch();
+    }
   });
+
+  const searchBtn = document.getElementById("playerSearchBtn");
+  searchBtn?.addEventListener("click", runLocalSearch);
 
   searchInput.addEventListener("blur", () => {
     setTimeout(() => results.classList.add("hidden"), 150);
@@ -69,10 +78,12 @@ export function initCheckIn(onChanged: CheckInChangeHandler): void {
   });
 }
 
-export async function loadCheckInState(): Promise<CheckInState> {
-  const session = await db.getOrCreateDraftSession();
-  const checkedIn = await db.listCheckedIn(session.id);
-  return { session, checkedIn };
+export async function refreshCheckInUi(): Promise<CheckInState> {
+  const app = await loadAppState();
+  const slice = { session: app.session, checkedIn: app.checkedIn };
+  renderCheckedIn(slice);
+  onChange(slice);
+  return slice;
 }
 
 export function renderCheckedIn(state: CheckInState): void {
@@ -80,7 +91,7 @@ export function renderCheckedIn(state: CheckInState): void {
   const count = $("checkinCount");
 
   list.replaceChildren();
-  for (const p of state.checkedIn) {
+  for (const p of sortPlayersByStrength(state.checkedIn)) {
     const chip = document.createElement("div");
     chip.className = "chip";
     chip.setAttribute("data-player-id", p.id);
@@ -110,34 +121,33 @@ export function renderCheckedIn(state: CheckInState): void {
         : `${n} שחקנים — צריך עוד ${3 - mod} כדי לאזן`;
 }
 
-async function runSearch(query: string, resultsEl: HTMLElement): Promise<void> {
-  if (!db.isDbConfigured()) return;
-  try {
-    const players = await db.searchPlayers(query);
-    resultsEl.replaceChildren();
-    if (players.length === 0) {
-      resultsEl.classList.add("hidden");
-      return;
-    }
-    for (const p of players) {
-      const li = document.createElement("li");
-      li.setAttribute("role", "option");
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "search-result-btn";
-      btn.textContent = p.strength !== null ? `${p.name} (${p.strength})` : `${p.name} — ללא דירוג`;
-      btn.addEventListener("click", () => {
-        void addCheckedIn(p);
-        (document.getElementById("playerSearch") as HTMLInputElement).value = "";
-        resultsEl.classList.add("hidden");
-      });
-      li.appendChild(btn);
-      resultsEl.appendChild(li);
-    }
-    resultsEl.classList.remove("hidden");
-  } catch (err) {
-    showError(err instanceof Error ? err.message : "שגיאת חיפוש");
+function showLocalSearchResults(query: string, resultsEl: HTMLElement): void {
+  if (!getAppState()) {
+    showError("טוען נתונים...");
+    return;
   }
+  const players = sortPlayersByStrength(filterRosterLocal(query));
+  resultsEl.replaceChildren();
+  if (players.length === 0) {
+    resultsEl.classList.add("hidden");
+    return;
+  }
+  for (const p of players) {
+    const li = document.createElement("li");
+    li.setAttribute("role", "option");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "search-result-btn";
+    btn.textContent = p.strength !== null ? `${p.name} (${p.strength})` : `${p.name} — ללא דירוג`;
+    btn.addEventListener("click", () => {
+      void addCheckedIn(p);
+      (document.getElementById("playerSearch") as HTMLInputElement).value = "";
+      resultsEl.classList.add("hidden");
+    });
+    li.appendChild(btn);
+    resultsEl.appendChild(li);
+  }
+  resultsEl.classList.remove("hidden");
 }
 
 async function onNewPlayer(form: HTMLFormElement): Promise<void> {
@@ -165,17 +175,16 @@ async function addCheckedIn(player: Player): Promise<void> {
     return;
   }
 
-  const state = await loadCheckInState();
-  if (state.checkedIn.some((p) => p.id === player.id)) {
+  const app = getAppState();
+  if (app?.checkedIn.some((p) => p.id === player.id)) {
     showError("השחקן כבר ברשימה");
     return;
   }
 
   try {
-    await db.checkIn(state.session.id, player.id);
-    const next = await loadCheckInState();
-    renderCheckedIn(next);
-    onChange(next);
+    const sessionId = app?.session.id ?? (await loadAppState()).session.id;
+    await db.checkIn(sessionId, player.id);
+    await refreshCheckInUi();
   } catch (err) {
     showError(err instanceof Error ? err.message : "לא נוסף לרשימה");
   }
@@ -184,11 +193,10 @@ async function addCheckedIn(player: Player): Promise<void> {
 async function removeCheckedIn(playerId: string): Promise<void> {
   clearError();
   try {
-    const state = await loadCheckInState();
-    await db.checkOut(state.session.id, playerId);
-    const next = await loadCheckInState();
-    renderCheckedIn(next);
-    onChange(next);
+    const app = getAppState();
+    const sessionId = app?.session.id ?? (await loadAppState()).session.id;
+    await db.checkOut(sessionId, playerId);
+    await refreshCheckInUi();
   } catch (err) {
     showError(err instanceof Error ? err.message : "לא הוסר");
   }
@@ -211,14 +219,12 @@ async function onStrengthSave(dialog: HTMLDialogElement): Promise<void> {
   clearError();
   try {
     await db.updatePlayer(strengthTargetId, { strength });
-    const state = await loadCheckInState();
-    const alreadyIn = state.checkedIn.some((p) => p.id === strengthTargetId);
+    const app = getAppState() ?? (await loadAppState());
+    const alreadyIn = app.checkedIn.some((p) => p.id === strengthTargetId);
     if (!alreadyIn) {
-      await db.checkIn(state.session.id, strengthTargetId);
+      await db.checkIn(app.session.id, strengthTargetId);
     }
-    const next = await loadCheckInState();
-    renderCheckedIn(next);
-    onChange(next);
+    await refreshCheckInUi();
     dialog.close();
     strengthTargetId = null;
   } catch (err) {

@@ -3,102 +3,85 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="description" content="איזון קבוצות כדורגל — בדיקת נוכחות, חלוקה לכחול / צהוב / כתום" />
-    <meta name="theme-color" content="#0f172a" />
-    <title>LoKohot — איזון קבוצות</title>
+    <meta name="description" content="קבוצות, משחקים וכובשים — LoKohot" />
+    <title>LoKohot — ערב משחק</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700&display=swap" rel="stylesheet" />
   </head>
   <body>
-    <div id="app" class="app">
+    <div class="app">
       <header class="app-header">
-        <h1 class="app-title">LoKohot</h1>
-        <p class="app-subtitle">איזון קבוצות כדורגל</p>
+        <div class="admin-topbar">
+          <div>
+            <h1 class="app-title" id="publicTitle">LoKohot</h1>
+            <p class="app-subtitle">מנצחת נשארת · משחקים · כובשים</p>
+          </div>
+          <a href="./admin.html" class="btn btn--ghost">ניהול</a>
+        </div>
       </header>
 
-      <div id="dbBanner" class="banner banner--warn hidden" role="status"></div>
-      <div id="errorBanner" class="banner banner--error hidden" role="alert"></div>
+      <div id="dbBanner" class="banner banner--warn hidden"></div>
+      <div id="closedBanner" class="banner banner--warn hidden"></div>
+      <div id="errorBanner" class="banner banner--error hidden"></div>
 
-      <section class="panel" aria-labelledby="checkinHeading">
-        <h2 id="checkinHeading" class="panel-title">מגיעים הערב</h2>
-        <div class="search-row">
-          <input
-            type="search"
-            id="playerSearch"
-            class="input"
-            placeholder="חיפוש שחקן..."
-            autocomplete="off"
-            enterkeyhint="search"
-          />
-          <ul id="searchResults" class="search-results hidden" role="listbox"></ul>
-        </div>
-        <details class="new-player-details">
-          <summary>שחקן חדש</summary>
-          <form id="newPlayerForm" class="new-player-form">
-            <input type="text" id="newPlayerName" class="input" placeholder="שם" required maxlength="80" />
-            <label class="strength-label">
-              כוח (1 = הכי חזק)
-              <input type="number" id="newPlayerStrength" class="input input--narrow" min="1" max="6" step="0.5" value="3" required />
-            </label>
-            <button type="submit" class="btn btn--secondary">הוסף לרשימה</button>
+      <div id="publicEmpty" class="panel">
+        <p>עדיין לא פורסם ערב משחק.</p>
+        <p class="hint">מנהל: היכנס ל<a href="./admin.html">ניהול</a>, אזן קבוצות ולחץ «פרסם לעמוד הציבורי».</p>
+      </div>
+
+      <div id="publicContent" class="hidden">
+        <section class="teams" aria-label="קבוצות">
+          <div class="team-col team-col--green">
+            <header class="team-header">
+              <span class="team-dot team-dot--green"></span>
+              <h3>ירוק</h3>
+            </header>
+            <ul class="team-list" data-public-team="green"></ul>
+          </div>
+          <div class="team-col team-col--yellow">
+            <header class="team-header">
+              <span class="team-dot team-dot--yellow"></span>
+              <h3>צהוב</h3>
+            </header>
+            <ul class="team-list" data-public-team="yellow"></ul>
+          </div>
+          <div class="team-col team-col--orange">
+            <header class="team-header">
+              <span class="team-dot team-dot--orange"></span>
+              <h3>כתום</h3>
+            </header>
+            <ul class="team-list" data-public-team="orange"></ul>
+          </div>
+        </section>
+
+        <section class="panel pitch-panel">
+          <h2 class="panel-title">מנצחת נשארת</h2>
+          <p id="pitchStatus" class="pitch-status"></p>
+        </section>
+
+        <section id="addGameSection" class="panel hidden">
+          <h2 class="panel-title">הוסף משחק</h2>
+          <form id="addGameForm" class="add-game-form">
+            <select id="gameHomeTeam" class="input" required aria-label="קבוצה בית"></select>
+            <span class="match-row__vs">נגד</span>
+            <select id="gameAwayTeam" class="input" required aria-label="קבוצה חוץ"></select>
+            <input type="number" id="gameHomeScore" class="input input--score" min="0" max="99" value="0" required aria-label="שערי בית" />
+            <span>:</span>
+            <input type="number" id="gameAwayScore" class="input input--score" min="0" max="99" value="0" required aria-label="שערי חוץ" />
+            <button type="submit" class="btn btn--primary btn--compact">הוסף משחק</button>
           </form>
-        </details>
-        <div id="checkedInList" class="chip-list" aria-live="polite"></div>
-        <p id="checkinCount" class="hint"></p>
-      </section>
+          <p class="hint">כל אחד יכול להוסיף או לעדכן משחקים עד שהמנהל סוגר את הערב.</p>
+        </section>
 
-      <section class="panel actions-panel">
-        <button type="button" id="btnBalance" class="btn btn--primary">איזון קבוצות</button>
-        <button type="button" id="btnRebalance" class="btn btn--ghost">איזון מחדש</button>
-      </section>
-
-      <section class="teams" id="teamsBoard" aria-label="קבוצות">
-        <div class="team-col team-col--blue" data-team="blue">
-          <header class="team-header">
-            <span class="team-dot team-dot--blue"></span>
-            <h3>כחול</h3>
-            <span class="team-avg" data-avg>—</span>
-          </header>
-          <ul class="team-list" data-team-list="blue"></ul>
-        </div>
-        <div class="team-col team-col--yellow" data-team="yellow">
-          <header class="team-header">
-            <span class="team-dot team-dot--yellow"></span>
-            <h3>צהוב</h3>
-            <span class="team-avg" data-avg>—</span>
-          </header>
-          <ul class="team-list" data-team-list="yellow"></ul>
-        </div>
-        <div class="team-col team-col--orange" data-team="orange">
-          <header class="team-header">
-            <span class="team-dot team-dot--orange"></span>
-            <h3>כתום</h3>
-            <span class="team-avg" data-avg>—</span>
-          </header>
-          <ul class="team-list" data-team-list="orange"></ul>
-        </div>
-      </section>
+        <section class="panel">
+          <h2 class="panel-title">משחקים</h2>
+          <div id="matchesList"></div>
+          <div id="nightGoalsSummary" class="night-summary hidden"></div>
+        </section>
+      </div>
     </div>
 
-    <dialog id="strengthDialog" class="dialog">
-      <form method="dialog" id="strengthForm" class="dialog-form">
-        <h3 id="strengthDialogTitle">עריכת כוח</h3>
-        <p id="strengthDialogName" class="dialog-name"></p>
-        <label class="strength-label">
-          כוח (1 = הכי חזק, 6 = הכי חלש)
-          <input type="number" id="strengthInput" class="input" min="1" max="6" step="0.5" required />
-        </label>
-        <div class="dialog-actions">
-          <button type="button" class="btn btn--ghost" id="strengthCancel">ביטול</button>
-          <button type="submit" class="btn btn--primary">שמור</button>
-        </div>
-      </form>
-    </dialog>
-
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/public.ts"></script>
   </body>
 </html>

@@ -13,7 +13,7 @@
     "test": "vitest run",
     "db:apply": "node scripts/apply-schema.mjs"
   },
-  "description": "Football team balancer — check in players, balance teams (blue / yellow / orange)",
+  "description": "Football team balancer — check in players, balance teams (green / yellow / orange)",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^25.6.0",

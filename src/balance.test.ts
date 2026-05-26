@@ -27,11 +27,11 @@ describe("balanceTeams", () => {
     const random = seededRandom(42);
     const result = balanceFromStrengths(strengths, random);
 
-    expect(result.assignments.blue).toHaveLength(6);
+    expect(result.assignments.green).toHaveLength(6);
     expect(result.assignments.yellow).toHaveLength(6);
     expect(result.assignments.orange).toHaveLength(6);
 
-    const avgs = [result.averages.blue, result.averages.yellow, result.averages.orange];
+    const avgs = [result.averages.green, result.averages.yellow, result.averages.orange];
     const spread = Math.max(...avgs) - Math.min(...avgs);
     expect(spread).toBeLessThan(0.15);
   });

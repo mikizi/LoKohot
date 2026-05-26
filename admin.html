@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="robots" content="noindex" />
+    <title>LoKohot — ניהול</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="adminGate" class="admin-gate panel">
+      <h1>LoKohot — ניהול</h1>
+      <form id="adminLoginForm" class="admin-login-form">
+        <label class="strength-label">
+          קוד מנהל
+          <input type="password" id="adminPin" class="input" autocomplete="current-password" required />
+        </label>
+        <p id="adminLoginError" class="hint" style="color: var(--error)"></p>
+        <button type="submit" class="btn btn--primary">כניסה</button>
+      </form>
+    </div>
+
+    <div id="adminApp" class="app hidden">
+      <header class="app-header">
+        <div class="admin-topbar">
+          <div>
+            <h1 class="app-title">LoKohot — ניהול</h1>
+            <p class="app-subtitle">איזון קבוצות · פרסום לעמוד הציבורי</p>
+          </div>
+          <div class="admin-topbar__actions">
+            <a href="./index.html" class="btn btn--ghost">עמוד ציבורי</a>
+            <button type="button" id="adminLogout" class="btn btn--ghost">יציאה</button>
+          </div>
+        </div>
+      </header>
+
+      <section class="panel publish-panel">
+        <h2 class="panel-title">פרסום</h2>
+        <label class="strength-label">
+          שם הערב (אופציונלי)
+          <input type="text" id="publishTitle" class="input" placeholder="למשל: שלישי 27/5" maxlength="80" />
+        </label>
+        <div class="publish-actions">
+          <button type="button" id="btnPublish" class="btn btn--primary">פרסם לעמוד הציבורי</button>
+          <button type="button" id="btnCloseDay" class="btn btn--secondary">סגור את הערב</button>
+        </div>
+        <p class="hint">אחרי פרסום — כולם מוסיפים ומעדכנים משחקים (מנצחת נשארת). «סגור את הערב» נועל עריכה.</p>
+        <p id="publishStatus" class="hint hidden" role="status"></p>
+      </section>
+
+      <div id="dbBanner" class="banner banner--warn hidden" role="status"></div>
+      <div id="errorBanner" class="banner banner--error hidden" role="alert"></div>
+
+      <section class="panel" aria-labelledby="checkinHeading">
+        <h2 id="checkinHeading" class="panel-title">מגיעים הערב</h2>
+        <div class="search-row">
+          <input type="search" id="playerSearch" class="input" placeholder="חיפוש שחקן (Enter)..." autocomplete="off" />
+          <button type="button" id="playerSearchBtn" class="btn btn--ghost btn--compact">חפש</button>
+          <ul id="searchResults" class="search-results hidden" role="listbox"></ul>
+        </div>
+        <p class="hint search-hint">חיפוש מהמאגר שנטען בפתיחה</p>
+        <details class="paste-list-details" open>
+          <summary>הדבק רשימת שחקנים</summary>
+          <form id="pasteListForm" class="paste-list-form">
+            <textarea id="pasteListInput" class="input paste-textarea" rows="6" placeholder="שורה לכל שחקן..."></textarea>
+            <button type="submit" class="btn btn--secondary">הוסף את כולם להערב</button>
+          </form>
+          <p id="pasteStatus" class="hint paste-status hidden" role="status"></p>
+        </details>
+        <div id="unmatchedPanel" class="unmatched-panel hidden">
+          <h3 class="unmatched-title">שחקנים שלא נמצאו במאגר</h3>
+          <div id="unmatchedList" class="unmatched-list"></div>
+        </div>
+        <details class="new-player-details">
+          <summary>שחקן חדש</summary>
+          <form id="newPlayerForm" class="new-player-form">
+            <input type="text" id="newPlayerName" class="input" placeholder="שם" required maxlength="80" />
+            <label class="strength-label">
+              כוח (1 = הכי חזק)
+              <input type="number" id="newPlayerStrength" class="input input--narrow" min="1" max="6" step="0.5" value="3" required />
+            </label>
+            <button type="submit" class="btn btn--secondary">הוסף לרשימה</button>
+          </form>
+        </details>
+        <div id="checkedInList" class="chip-list"></div>
+        <p id="checkinCount" class="hint"></p>
+      </section>
+
+      <section class="panel actions-panel">
+        <button type="button" id="btnBalance" class="btn btn--primary">איזון קבוצות</button>
+        <button type="button" id="btnRebalance" class="btn btn--ghost">איזון מחדש</button>
+        <button type="button" id="btnSaveTeams" class="btn btn--secondary">שמור קבוצות</button>
+      </section>
+      <p id="teamsSaveHint" class="hint teams-save-hint hidden"></p>
+
+      <section class="teams" id="teamsBoard">
+        <div class="team-col team-col--green" data-team="green">
+          <header class="team-header">
+            <span class="team-dot team-dot--green"></span>
+            <h3>ירוק</h3>
+            <span class="team-avg" data-avg>—</span>
+          </header>
+          <ul class="team-list" data-team-list="green"></ul>
+        </div>
+        <div class="team-col team-col--yellow" data-team="yellow">
+          <header class="team-header">
+            <span class="team-dot team-dot--yellow"></span>
+            <h3>צהוב</h3>
+            <span class="team-avg" data-avg>—</span>
+          </header>
+          <ul class="team-list" data-team-list="yellow"></ul>
+        </div>
+        <div class="team-col team-col--orange" data-team="orange">
+          <header class="team-header">
+            <span class="team-dot team-dot--orange"></span>
+            <h3>כתום</h3>
+            <span class="team-avg" data-avg>—</span>
+          </header>
+          <ul class="team-list" data-team-list="orange"></ul>
+        </div>
+      </section>
+    </div>
+
+    <dialog id="strengthDialog" class="dialog">
+      <form method="dialog" id="strengthForm" class="dialog-form">
+        <h3>עריכת כוח</h3>
+        <p id="strengthDialogName" class="dialog-name"></p>
+        <label class="strength-label">
+          כוח (1 = הכי חזק)
+          <input type="number" id="strengthInput" class="input" min="1" max="6" step="0.5" required />
+        </label>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn--ghost" id="strengthCancel">ביטול</button>
+          <button type="submit" class="btn btn--primary">שמור</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="/src/admin.ts"></script>
+  </body>
+</html>
