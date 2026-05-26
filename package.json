@@ -1,0 +1,25 @@
+{
+  "name": "lokohot",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "db:apply": "node scripts/apply-schema.mjs"
+  },
+  "description": "Football team balancer — check in players, balance teams (blue / yellow / orange)",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "pg": "^8.16.0",
+    "typescript": "^6.0.3",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4"
+  }
+}
