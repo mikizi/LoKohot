@@ -1,10 +1,8 @@
 /**
- * Apply supabase/schema.sql via Postgres.
+ * Apply supabase/reset_all.sql via Postgres (full reset — deletes all app data).
  *
- * Easiest: paste the full connection string from Supabase → Settings → Database
+ * Easiest: paste the pooler URI from Supabase → Settings → Database
  * into .env as DATABASE_URL, then: npm run db:apply
- *
- * Or set SUPABASE_DB_PASSWORD (+ optional SUPABASE_DB_REGION for pooler).
  */
 import fs from "fs";
 import path from "path";
@@ -15,7 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 loadDotEnv(path.join(__dirname, "..", ".env"));
 
-const sqlPath = path.join(__dirname, "..", "supabase", "schema.sql");
+const sqlPath = path.join(__dirname, "..", "supabase", "reset_all.sql");
 const sql = fs.readFileSync(sqlPath, "utf8");
 
 const connectionString = resolveConnectionString();
@@ -30,13 +28,15 @@ choose "Session pooler" or "URI", copy it into .env as:
 
 Then run: npm run db:apply
 
-Option B: Open supabase/schema.sql in the SQL Editor and run it there.
+Option B: Open supabase/reset_all.sql in the SQL Editor and run it there.
 
 Note: db.[project].supabase.co often fails with ENOTFOUND on IPv4-only networks.
 Use the pooler host (*.pooler.supabase.com), not the direct db.* host.
 `);
   process.exit(1);
 }
+
+console.warn("Applying reset_all.sql — this DELETES all LoKohot tables and data.");
 
 const client = new pg.Client({
   connectionString,
@@ -76,7 +76,6 @@ function resolveConnectionString() {
     return `postgresql://${user}:${encodeURIComponent(password)}@aws-0-${region}.pooler.supabase.com:5432/postgres`;
   }
 
-  // Legacy direct host — often IPv6-only; kept as last resort
   return `postgresql://postgres:${encodeURIComponent(password)}@db.${projectRef}.supabase.co:5432/postgres`;
 }
 

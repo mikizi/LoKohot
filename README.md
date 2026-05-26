@@ -23,13 +23,11 @@ Supabase → **SQL Editor** → הדבק והרץ את כל הקובץ:
 
 **[`supabase/reset_all.sql`](supabase/reset_all.sql)**
 
-זה מוחק את כל הטבלאות, יוצר אותן מחדש, 42 שחקנים בלי כפילויות, וסיסמת ניהול `hagigat1234`.
+זה הקובץ היחיד לסכמה — כולל קבוצות **ירוק / צהוב / כתום**, משחקים (מנצחת נשארת), שערים לכל משחק (כבש + בישל), וסיסמת ניהול `hagigat1234`.
 
-בסוף תראה שורת סיכום: `players | 42`.
+בסוף תראה שורת סיכום: `players | …`.
 
-### הגדרה ראשונה (בלי מחיקה)
-
-רק אם המסד ריק: [`supabase/schema.sql`](supabase/schema.sql) + [`migration_game.sql`](supabase/migration_game.sql) + [`migration_admin.sql`](supabase/migration_admin.sql).
+אופציונלי מהטרמינל (מוחק הכל כמו למעלה): `npm run db:apply` עם `DATABASE_URL` ב-`.env`.
 
 העתק `.env.example` → `.env`:
 
@@ -40,15 +38,16 @@ Supabase → **SQL Editor** → הדבק והרץ את כל הקובץ:
 
 | דף | כתובת | תפקיד |
 |----|--------|--------|
-| ציבורי | `index.html` | קבוצות, תוצאות משחקים, טבלה, כובשים |
-| ניהול | `admin.html` | check-in, איזון, פרסום לציבור |
+| ציבורי | `index.html` | קבוצות, משחקים (מנצחת נשארת), שערים לכל משחק |
+| ניהול | `admin.html` | check-in, איזון, פרסום, סגירת ערב |
 
 קוד ניהול (`admin.html`): `hagigat1234` — לשנות: עדכן `admin_pin` בטבלת `app_settings`.
 
 ### פרסום ערב
 
 1. ב-**ניהול**: check-in → איזון → **שמור קבוצות** → **פרסם לעמוד הציבורי**
-2. ב-**עמוד ציבורי**: עדכון תוצאות (3 משחקים), הוספת כובשים, צפייה בטבלה
+2. ב-**עמוד ציבורי**: הוספת משחקים, תוצאות, כבש / בישל לכל משחק
+3. בסוף: **סגור את הערב** בניהול
 
 ## פיתוח מקומי
 
@@ -86,7 +85,8 @@ src/
   lokohotDb.ts      # PostgREST
   balance.ts        # אלגוריתם איזון
   ui/               # check-in, teams
-supabase/schema.sql # טבלאות + seed + RLS
+supabase/reset_all.sql  # סכמה מלאה (קובץ יחיד)
+supabase/players_seed.json  # רשימת שחקנים לעדכון (אופציונלי)
 ```
 
 ## דירוג כוח
