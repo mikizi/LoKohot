@@ -25,7 +25,14 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-      - run: npm ci
+          cache-dependency-path: package-lock.json
+      - name: Install dependencies
+        run: |
+          npm config set fetch-retries 5
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+          npm ci --no-audit --no-fund
+        timeout-minutes: 10
       - run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
